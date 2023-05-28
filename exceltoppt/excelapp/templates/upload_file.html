@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload File</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        .file-input {
+            margin-bottom: 10px;
+        }
+
+        .sheet-list {
+            margin-top: 20px;
+        }
+
+        .sheet-list label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .generate-btn {
+            margin-top: 20px;
+        }
+    </style>
+    <script>
+        $(document).ready(function () {
+            $('#excel_file').change(function () {
+                var form_data = new FormData();
+                form_data.append('excel_file', $('#excel_file')[0].files[0]);
+                var csrftoken = getCookie('csrftoken');
+                $.ajaxSetup({
+                    beforeSend: function (xhr, settings) {
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                    }
+                });
+                $.ajax({
+                    url: '{% url "excelapp:upload_file" %}',
+                    type: 'POST',
+                    data: form_data,
+                    contentType: false,
+                    processData: false,
+                    success: function (response) {
+                        if (response.error) {
+                            $('#sheet_list').html('<p class="error">' + response.error + '</p>');
+                        } else {
+                            var sheet_list = response.sheet_list;
+                            var sheet_list_html = '';
+                            for (var i = 0; i < sheet_list.length; i++) {
+                                sheet_list_html += '<label><input type="checkbox" name="selected_sheets" value="' + sheet_list[i] + '">' + sheet_list[i] + '</label>';
+                            }
+                            $('#sheet_list').html(sheet_list_html);
+                        }
+                    },
+                    error: function () {
+                        alert('An error occurred while uploading the file.');
+                    }
+                });
+            });
+
+            // Handle form submission
+            $('#generate_ppt_form').submit(function (event) {
+                event.preventDefault();  // Prevent default form submission
+
+                var selected_sheets = [];
+                $('input[name="selected_sheets"]:checked').each(function () {
+                    selected_sheets.push($(this).val());
+                });
+
+                if (selected_sheets.length === 0) {
+                    alert('Please select at least one sheet.');
+                    return;
+                }
+
+                // Get the uploaded filename
+                var filename = $('#excel_file')[0].files[0].name;
+
+                // Append the filename to the form data
+                $('<input>').attr({
+                    type: 'hidden',
+                    name: 'filename',
+                    value: filename
+                }).appendTo('#generate_ppt_form');
+
+                // Serialize the selected sheets and append to the form data
+                var sheet_list_html = JSON.stringify(selected_sheets);
+                $('<input>').attr({
+                    type: 'hidden',
+                    name: 'sheet_list_html',
+                    value: sheet_list_html
+                }).appendTo('#generate_ppt_form');
+
+                // Submit the form
+                this.submit();
+            });
+        });
+
+        function getCookie(name) {
+            var cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                var cookies = document.cookie.split(';');
+                for (var i = 0; i < cookies.length; i++) {
+                    var cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</head>
+<body>
+    <h1>Upload Excel File</h1>
+    <div class="file-input">
+        <label for="excel_file">Select Excel File:</label>
+        <input type="file" name="excel_file" id="excel_file" accept=".xlsx, .xls">
+    </div>
+    <div id="sheet_list" class="sheet-list"></div>
+    <form id="generate_ppt_form" method="post" action="{% url 'excelapp:generate_ppt' %}">
+        {% csrf_token %}
+        <div class="generate-btn">
+            <input type="submit" value="Generate PowerPoint">
+        </div>
+    </form>
+</body>
+</html>
