@@ -12,6 +12,19 @@
                 form_data.append('excel_file', $('#excel_file')[0].files[0]);
                 var csrftoken = getCookie('csrftoken');
                 $.ajaxSetup({
+                    xhr: function () {
+                        var xhr = new window.XMLHttpRequest();
+                        // Add progress event listener
+                        xhr.upload.addEventListener("progress", function (evt) {
+                            if (evt.lengthComputable) {
+                                var percentComplete = (evt.loaded / evt.total) * 100;
+                                // Update the progress bar
+                                $('.progress-bar').width(percentComplete + '%');
+                                $('.progress-bar').text(percentComplete.toFixed(2) + '%');
+                            }
+                        }, false);
+                        return xhr;
+                    },
                     beforeSend: function (xhr, settings) {
                         xhr.setRequestHeader("X-CSRFToken", csrftoken);
                     }
@@ -40,7 +53,6 @@
                 });
             });
 
-            // Handle form submission
             $('#generate_ppt_form').submit(function (event) {
                 event.preventDefault();  // Prevent default form submission
 
@@ -54,17 +66,13 @@
                     return;
                 }
 
-                // Get the uploaded filename
                 var filename = $('#excel_file')[0].files[0].name;
-
-                // Append the filename to the form data
                 $('<input>').attr({
                     type: 'hidden',
                     name: 'filename',
                     value: filename
                 }).appendTo('#generate_ppt_form');
 
-                // Serialize the selected sheets and append to the form data
                 var sheet_list_html = JSON.stringify(selected_sheets);
                 $('<input>').attr({
                     type: 'hidden',
@@ -72,25 +80,24 @@
                     value: sheet_list_html
                 }).appendTo('#generate_ppt_form');
 
-                // Submit the form
                 this.submit();
             });
-        });
 
-        function getCookie(name) {
-            var cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                var cookies = document.cookie.split(';');
-                for (var i = 0; i < cookies.length; i++) {
-                    var cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
+            function getCookie(name) {
+                var cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    var cookies = document.cookie.split(';');
+                    for (var i = 0; i < cookies.length; i++) {
+                        var cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
                     }
                 }
+                return cookieValue;
             }
-            return cookieValue;
-        }
+        });
     </script>
 </head>
 <body>
@@ -107,7 +114,10 @@
                 <div class="sheet-list-container">
                     <div id="sheet_list" class="sheet-list"></div>
                 </div>
-                    <input class="blue-button" type="submit" value="Generate PowerPoint">
+                <input class="blue-button" type="submit" value="Generate PowerPoint">
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
             </div>
         </form>
     </div>
