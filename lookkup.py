@@ -1,5 +1,7 @@
 import xlwings as xw
 
+
+xw.App(visible=False)
 # Load File1.xlsm
 file1_path = r'F:\PythonProjects\lookup-and-add\input_file\file_input1.xlsm'
 file1_workbook = xw.Book(file1_path)
